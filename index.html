@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kitui Youth Leadership Survey — Call Console</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window.__noXLSX=true"></script>
+<style>
+  :root{
+    --ink:#0E1726; --panel:#16233A; --panel-2:#1B2D49; --line:#27395A;
+    --teal:#2FB6A8; --teal-dim:#1d7a72; --amber:#F4B740; --green:#46C28E;
+    --text:#E8EEF5; --muted:#8DA0B8; --lock:#33415C; --danger:#E8758B;
+    --radius:14px; --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--ink);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  body{padding-bottom:120px}
+  a{color:var(--teal)}
+  .wrap{max-width:760px;margin:0 auto;padding:0 16px}
+
+  /* header */
+  header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0E1726 70%,rgba(14,23,38,.85));
+    backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+  .hbar{display:flex;align-items:center;gap:14px;padding:14px 16px;max-width:760px;margin:0 auto}
+  .brand{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal);font-weight:700}
+  .htitle{font-size:15px;font-weight:700;line-height:1.2}
+  .hsub{font-size:11px;color:var(--muted);letter-spacing:.04em}
+  .grow{flex:1}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:600}
+  .chip b{color:var(--teal);font-size:14px}
+  .iconbtn{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);border-radius:10px;
+    width:38px;height:38px;font-size:17px;cursor:pointer;line-height:1}
+  .iconbtn:hover{color:var(--text);border-color:var(--teal)}
+  .progress{height:3px;background:var(--line)}
+  .progress > i{display:block;height:100%;width:0;background:var(--teal);transition:width .25s ease}
+
+  /* agent strip */
+  .agentstrip{display:flex;align-items:center;gap:10px;padding:12px 0 4px}
+  .agentstrip label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+
+  /* sections */
+  .sec{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    margin:16px 0;overflow:hidden;box-shadow:var(--shadow)}
+  .sechead{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);
+    background:var(--panel-2)}
+  .sectag{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--ink);background:var(--teal);
+    border-radius:6px;padding:3px 8px}
+  .sechead h2{font-size:14px;margin:0;font-weight:700;letter-spacing:.01em}
+  .secbody{padding:6px 18px 18px}
+
+  .q{padding:16px 0;border-bottom:1px solid rgba(39,57,90,.5)}
+  .q:last-child{border-bottom:0}
+  .qlabel{font-size:14.5px;font-weight:600;margin-bottom:11px;line-height:1.45}
+  .qlabel .code{color:var(--teal);font-weight:800;margin-right:7px;font-variant-numeric:tabular-nums}
+  .hint{font-size:12px;color:var(--muted);font-weight:400;margin-top:3px}
+  .req::after{content:"·";color:var(--amber);margin-left:6px;font-weight:800}
+
+  /* inputs */
+  select,input[type=text],textarea{width:100%;background:#0F1B30;border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:12px 13px;font-size:14.5px;font-family:inherit;outline:none}
+  select:focus,input:focus,textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(47,182,168,.18)}
+  textarea{resize:vertical;min-height:56px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:520px){.two{grid-template-columns:1fr}}
+
+  /* segmented radio (yes/no & choices) */
+  .seg{display:flex;flex-wrap:wrap;gap:8px}
+  .seg .opt{flex:1;min-width:120px}
+  .seg .opt input{position:absolute;opacity:0;pointer-events:none}
+  .seg .opt label{display:block;text-align:center;padding:12px 10px;border:1px solid var(--line);
+    border-radius:10px;font-size:14px;cursor:pointer;background:#0F1B30;transition:.12s;user-select:none}
+  .seg .opt input:checked + label{background:var(--teal);color:var(--ink);border-color:var(--teal);font-weight:700}
+  .seg .opt label:hover{border-color:var(--teal)}
+
+  /* likert 1-5 */
+  .likert{display:flex;gap:8px}
+  .likert .opt{flex:1}
+  .likert .opt input{position:absolute;opacity:0;pointer-events:none}
+  .likert .opt label{display:flex;align-items:center;justify-content:center;height:50px;border:1px solid var(--line);
+    border-radius:10px;font-size:18px;font-weight:700;cursor:pointer;background:#0F1B30;transition:.12s}
+  .likert .opt input:checked + label{background:var(--teal);color:var(--ink);border-color:var(--teal)}
+  .likert .opt label:hover{border-color:var(--teal)}
+  .scaleends{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:7px}
+
+  /* locked (skip) state */
+  .locked{position:relative}
+  #prospect.locked{opacity:.4;filter:saturate(.4)}
+  .locked input,.locked select,.locked label{pointer-events:none}
+  .ribbon{display:none;align-items:center;gap:8px;background:rgba(244,183,64,.12);border:1px solid var(--amber);
+    color:var(--amber);font-size:12.5px;font-weight:600;border-radius:10px;padding:10px 13px;margin:14px 0 2px}
+  .show-ribbon .ribbon{display:flex}
+  .skipnote{display:none}
+  .show-ribbon .skipnote{display:block}
+
+  /* checkbox row */
+  .checks{display:flex;flex-direction:column;gap:10px}
+  .chk{display:flex;align-items:center;gap:11px;cursor:pointer;font-size:14px}
+  .chk input{width:20px;height:20px;accent-color:var(--teal)}
+
+  /* action bar */
+  .actionbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(14,23,38,.96);
+    border-top:1px solid var(--line);backdrop-filter:blur(8px)}
+  .actioninner{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:center;padding:12px 16px}
+  .btn{border:none;border-radius:11px;padding:13px 18px;font-size:14.5px;font-weight:700;cursor:pointer;
+    font-family:inherit}
+  .btn-primary{background:var(--teal);color:var(--ink);flex:1}
+  .btn-primary:hover{background:#37c7b8}
+  .btn-ghost{background:var(--panel-2);color:var(--text);border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--teal)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  /* toast */
+  #toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:var(--green);color:#06251a;font-weight:700;padding:12px 20px;border-radius:999px;font-size:14px;
+    transition:.25s;z-index:40;pointer-events:none;box-shadow:var(--shadow);max-width:90vw;text-align:center}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.err{background:var(--danger);color:#3a0d16}
+
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(6,11,20,.7);display:none;align-items:center;justify-content:center;
+    z-index:50;padding:16px}
+  .modal.open{display:flex}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:460px;width:100%;
+    box-shadow:var(--shadow);max-height:88vh;overflow:auto}
+  .cardhead{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center}
+  .cardhead h3{margin:0;font-size:15px}
+  .cardbody{padding:18px 20px}
+  .cardbody p{font-size:13px;color:var(--muted);line-height:1.55;margin:0 0 14px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+  .syncdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:7px}
+  .syncdot.on{background:var(--green)} .syncdot.off{background:var(--danger)}
+  .footnote{font-size:11px;color:var(--muted);text-align:center;padding:18px 0 4px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hbar">
+    <div>
+      <div class="brand">Quick Ops · Elevra 360</div>
+      <div class="htitle">Kitui Youth Leadership Survey</div>
+      <div class="hsub">Acquire · Retain · Grow — field call console</div>
+    </div>
+    <div class="grow"></div>
+    <div class="chip" title="Responses saved on this device">Saved <b id="countChip">0</b></div>
+    <button class="iconbtn" id="openData" title="Saved responses & export">⤓</button>
+    <button class="iconbtn" id="openSettings" title="Settings">⚙</button>
+  </div>
+  <div class="progress"><i id="progressBar"></i></div>
+</header>
+
+<div class="wrap">
+  <div class="agentstrip">
+    <label>Agent on call</label>
+    <select id="agent" style="max-width:280px">
+      <option value="">Select your name…</option>
+      <option>John Makau</option>
+      <option>Veronica Kisuu</option>
+    </select>
+  </div>
+
+  <!-- SECTION A -->
+  <section class="sec" id="secA">
+    <div class="sechead"><span class="sectag">A</span><h2>Where you stand today</h2></div>
+    <div class="secbody">
+      <div class="q">
+        <div class="qlabel req"><span class="code">Q1</span>Are you still interested in vying for a position in the National Youth Council?</div>
+        <div class="seg" id="q1">
+          <span class="opt"><input type="radio" name="q1" id="q1y" value="Yes - planning to run"><label for="q1y">Yes — planning to run</label></span>
+          <span class="opt"><input type="radio" name="q1" id="q1n" value="No - no longer interested"><label for="q1n">No — no longer interested</label></span>
+        </div>
+      </div>
+
+      <div class="ribbon" id="ribbonA">⤳ Not interested — Q2–Q4 skipped. Continue at Section B (Q5).</div>
+
+      <div id="prospect">
+        <div class="q">
+          <div class="qlabel req"><span class="code">Q2</span>How prepared do you feel to run today?</div>
+          <div class="likert" id="q2"></div>
+          <div class="scaleends"><span>1 · Not at all prepared</span><span>5 · Very prepared</span></div>
+        </div>
+        <div class="q">
+          <div class="qlabel req"><span class="code">Q3</span>Nominations secured so far <span class="hint">(needs at least 50 registered youth)</span></div>
+          <select id="q3">
+            <option value="">Select a band…</option>
+            <option>1 - None yet</option><option>2 - 1-10</option><option>3 - 11-25</option>
+            <option>4 - 26-49</option><option>5 - 50 or more</option><option>6 - Not sure</option>
+          </select>
+        </div>
+        <div class="q">
+          <div class="qlabel req"><span class="code">Q4</span>How familiar are you with the steps to register to vie?</div>
+          <div class="likert" id="q4"></div>
+          <div class="scaleends"><span>1 · Not familiar at all</span><span>5 · Very familiar</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION B -->
+  <section class="sec">
+    <div class="sechead"><span class="sectag">B</span><h2>Leadership &amp; community experience</h2></div>
+    <div class="secbody">
+      <div class="q">
+        <div class="qlabel req"><span class="code">Q5</span>Have you ever taken part in community leadership activities?
+          <div class="hint">e.g. youth group, church/mosque committee, school or sports leadership, self-help group</div></div>
+        <div class="seg" id="q5">
+          <span class="opt"><input type="radio" name="q5" id="q5y" value="Yes"><label for="q5y">Yes</label></span>
+          <span class="opt"><input type="radio" name="q5" id="q5n" value="No"><label for="q5n">No</label></span>
+        </div>
+        <div style="margin-top:11px"><input type="text" id="q5role" placeholder="If yes — what role? (record exactly as said)"></div>
+      </div>
+      <div class="q">
+        <div class="qlabel req"><span class="code">Q6</span>Have you been involved in community mobilisation before?
+          <div class="hint">organising meetings, registration drives, campaigns, rallying people</div></div>
+        <div class="seg" id="q6">
+          <span class="opt"><input type="radio" name="q6" id="q6y" value="Yes"><label for="q6y">Yes</label></span>
+          <span class="opt"><input type="radio" name="q6" id="q6n" value="No"><label for="q6n">No</label></span>
+        </div>
+        <div style="margin-top:11px"><input type="text" id="q6det" placeholder="If yes — what kind, and roughly how many people?"></div>
+      </div>
+      <div class="q">
+        <div class="qlabel req"><span class="code">Q7</span>Which channels do young people in your area trust most? <span class="hint">(up to two)</span></div>
+        <div class="two">
+          <select id="q7a"><option value="">First channel…</option></select>
+          <select id="q7b"><option value="">Second channel (optional)…</option></select>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION C -->
+  <section class="sec">
+    <div class="sechead"><span class="sectag">C</span><h2>From youth council to county strategy</h2></div>
+    <div class="secbody">
+      <div class="q">
+        <div class="qlabel req"><span class="code">Q8</span>How much are young people's voices considered in how Kitui County is governed today?</div>
+        <div class="likert" id="q8"></div>
+        <div class="scaleends"><span>1 · Not considered</span><span>5 · Strongly considered</span></div>
+      </div>
+      <div class="q">
+        <div class="qlabel req"><span class="code">Q9</span>What should be the top priority for the next Governor?</div>
+        <select id="q9">
+          <option value="">Select one…</option>
+          <option>1 - Jobs and youth empowerment</option><option>2 - Water and food security</option>
+          <option>3 - Health services</option><option>4 - Roads and infrastructure</option>
+          <option>5 - Education and skills</option><option>6 - Agriculture and livestock</option>
+          <option>7 - Fighting corruption</option><option>8 - Other</option>
+        </select>
+      </div>
+      <div class="q">
+        <div class="qlabel req"><span class="code">Q10</span>As things stand today, do you have a preferred candidate for Governor?
+          <div class="hint">Sensitive — read calmly &amp; reassure. Anonymous. If they decline, leave the name blank.</div></div>
+        <div class="seg" id="q10">
+          <span class="opt"><input type="radio" name="q10" id="q10y" value="Yes - has preferred candidate"><label for="q10y">Yes — has one</label></span>
+          <span class="opt"><input type="radio" name="q10" id="q10n" value="No"><label for="q10n">No</label></span>
+          <span class="opt"><input type="radio" name="q10" id="q10u" value="None / Undecided"><label for="q10u">None / Undecided</label></span>
+        </div>
+        <div id="q10nameWrap" style="margin-top:11px;display:none">
+          <input type="text" id="q10name" placeholder="Who is that? (record verbatim)">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION D -->
+  <section class="sec">
+    <div class="sechead"><span class="sectag">D</span><h2>About you <span style="font-weight:400;color:var(--muted);font-size:12px">— optional</span></h2></div>
+    <div class="secbody">
+      <div class="q">
+        <div class="qlabel"><span class="code">Q11</span>Age group</div>
+        <div class="seg" id="q11">
+          <span class="opt"><input type="radio" name="q11" id="a1" value="18-24"><label for="a1">18–24</label></span>
+          <span class="opt"><input type="radio" name="q11" id="a2" value="25-29"><label for="a2">25–29</label></span>
+          <span class="opt"><input type="radio" name="q11" id="a3" value="30-35"><label for="a3">30–35</label></span>
+        </div>
+      </div>
+      <div class="q">
+        <div class="qlabel"><span class="code">Q12</span>Ward or sub-county</div>
+        <input type="text" id="q12" placeholder="Record verbatim">
+      </div>
+    </div>
+  </section>
+
+  <!-- POST CALL -->
+  <section class="sec">
+    <div class="sechead"><span class="sectag">✓</span><h2>Post-call</h2></div>
+    <div class="secbody">
+      <div class="q">
+        <div class="qlabel req">Call outcome</div>
+        <select id="outcome">
+          <option value="">Select outcome…</option>
+          <option>Completed</option><option>Partial</option><option>Refused</option>
+          <option>Callback</option><option>Wrong number</option><option>No answer</option>
+        </select>
+      </div>
+      <div class="q">
+        <div class="qlabel req">Before saving, confirm your checks</div>
+        <div class="checks">
+          <label class="chk"><input type="checkbox" id="chkLikert"> I checked every 1–5 score is set correctly</label>
+          <label class="chk"><input type="checkbox" id="chkVerb"> I typed the verbatim fields exactly as said</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="footnote">
+    Responses are stored on this device until you export them. Anonymous — never record a respondent's name.<br>
+    <span id="syncStatusLine"><span class="syncdot off"></span>Live sync off — using offline export</span>
+  </div>
+</div>
+
+<!-- ACTION BAR -->
+<div class="actionbar"><div class="actioninner">
+  <button class="btn btn-ghost" id="resetBtn" title="Clear the form for a fresh call">Clear</button>
+  <button class="btn btn-primary" id="saveBtn">Save &amp; next call →</button>
+</div></div>
+
+<div id="toast"></div>
+
+<!-- DATA MODAL -->
+<div class="modal" id="dataModal"><div class="card">
+  <div class="cardhead"><h3>Saved responses</h3><div class="grow"></div><button class="iconbtn" data-close>✕</button></div>
+  <div class="cardbody">
+    <p>You have <b id="countModal" style="color:var(--text)">0</b> response(s) saved on this device. Export regularly, and before clearing browser data.</p>
+    <button class="btn btn-primary" id="dlXlsx" style="width:100%;margin-bottom:10px">Download for Excel (.xlsx)</button>
+    <button class="btn btn-ghost" id="dlCsv" style="width:100%;margin-bottom:18px">Download CSV (works offline)</button>
+    <p style="margin-bottom:8px">Both files use the exact column headers from the master workbook, so they paste straight into its <b>Responses</b> tab.</p>
+    <button class="btn btn-ghost" id="clearData" style="width:100%;color:var(--danger);border-color:var(--danger)">Clear device data…</button>
+  </div>
+</div></div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal" id="setModal"><div class="card">
+  <div class="cardhead"><h3>Settings</h3><div class="grow"></div><button class="iconbtn" data-close>✕</button></div>
+  <div class="cardbody">
+    <div class="field">
+      <label>Live sync URL (optional)</label>
+      <input type="text" id="syncUrl" placeholder="Paste Google Apps Script web-app URL">
+    </div>
+    <p>Leave blank to work fully offline (export to Excel/CSV). Paste the Apps Script URL from the Implementation Guide to also push each saved response straight into a live Google Sheet.</p>
+    <div id="syncState" style="font-size:13px;margin-bottom:16px"><span class="syncdot off"></span>Live sync off</div>
+    <button class="btn btn-primary" id="saveSettings" style="width:100%">Save settings</button>
+  </div>
+</div></div>
+
+<script>
+// ---------- storage shim (localStorage when available, memory otherwise) ----------
+const Store = (() => {
+  let mem = {};
+  let ok = false;
+  try { const k='__t'; localStorage.setItem(k,'1'); localStorage.removeItem(k); ok=true; } catch(e){ ok=false; }
+  return {
+    get:(k)=>{ try { return ok ? localStorage.getItem(k) : (mem[k]??null);}catch(e){return mem[k]??null;} },
+    set:(k,v)=>{ try { ok ? localStorage.setItem(k,v) : (mem[k]=v);}catch(e){mem[k]=v;} },
+  };
+})();
+
+const HEADERS = ["RespondentID","Timestamp","AgentName","Q1_Interest","Q2_Preparedness",
+  "Q3_Nominations","Q3_Code","Q4_Familiarity","Q5_CommunityLeadership_YesNo","Q5_Role_Verbatim",
+  "Q6_Mobilisation_YesNo","Q6_Mobilisation_Details","Q7_Channel1","Q7_Channel2","Q8_YouthVoiceScore",
+  "Q9_TopPriority","Q10_PrefersCandidate_YesNo","Q10_CandidateName_Verbatim","Q11_AgeGroup",
+  "Q12_Ward_Verbatim","CallOutcome","VerificationNotes","SurveyDate"];
+
+const CHANNELS = ["Radio","Church/mosque announcements","Community barazas / chief's meetings","WhatsApp",
+  "Facebook","TikTok","Word of mouth","SMS / text","Other"];
+
+let responses = [];
+try { responses = JSON.parse(Store.get('kitui_responses')||'[]'); } catch(e){ responses=[]; }
+
+// ---------- build dynamic controls ----------
+function likert(id){
+  const host=document.getElementById(id);
+  for(let i=1;i<=5;i++){
+    host.insertAdjacentHTML('beforeend',
+      `<span class="opt"><input type="radio" name="${id}" id="${id}_${i}" value="${i}"><label for="${id}_${i}">${i}</label></span>`);
+  }
+}
+['q2','q4','q8'].forEach(likert);
+CHANNELS.forEach(c=>{
+  document.getElementById('q7a').insertAdjacentHTML('beforeend',`<option>${c}</option>`);
+  document.getElementById('q7b').insertAdjacentHTML('beforeend',`<option>${c}</option>`);
+});
+
+// restore agent
+const agentSel=document.getElementById('agent');
+agentSel.value = Store.get('kitui_agent')||'';
+agentSel.addEventListener('change',()=>Store.set('kitui_agent',agentSel.value));
+
+// ---------- skip logic ----------
+const secA=document.getElementById('secA');
+function applySkip(){
+  const no=document.getElementById('q1n').checked;
+  secA.classList.toggle('show-ribbon',no);
+  document.getElementById('prospect').classList.toggle('locked',no);
+  if(no){ // clear prospect answers
+    document.querySelectorAll('input[name=q2],input[name=q4]').forEach(r=>r.checked=false);
+    document.getElementById('q3').value='';
+  }
+  updateProgress();
+}
+document.getElementById('q1').addEventListener('change',applySkip);
+
+// Q10 conditional name
+document.getElementById('q10').addEventListener('change',()=>{
+  const show=document.getElementById('q10y').checked;
+  document.getElementById('q10nameWrap').style.display=show?'block':'none';
+  if(!show) document.getElementById('q10name').value='';
+});
+
+// ---------- progress ----------
+function val(name){const el=document.querySelector(`input[name=${name}]:checked`);return el?el.value:'';}
+function updateProgress(){
+  const no=document.getElementById('q1n').checked;
+  const need=['agent'];
+  const checks=[
+    !!agentSel.value,
+    !!val('q1'),
+    no? true : !!val('q2'),
+    no? true : !!document.getElementById('q3').value,
+    no? true : !!val('q4'),
+    !!val('q5'), !!val('q6'),
+    !!document.getElementById('q7a').value,
+    !!val('q8'), !!document.getElementById('q9').value, !!val('q10'),
+    !!document.getElementById('outcome').value
+  ];
+  const done=checks.filter(Boolean).length;
+  document.getElementById('progressBar').style.width=(done/checks.length*100)+'%';
+}
+document.addEventListener('change',updateProgress);
+document.addEventListener('input',updateProgress);
+
+// ---------- collect & validate ----------
+function codeOf(s){const m=(s||'').match(/^(\d+)/);return m?Number(m[1]):'';}
+function collect(){
+  const no=document.getElementById('q1n').checked;
+  const v=document.getElementById('chkLikert').checked, w=document.getElementById('chkVerb').checked;
+  const verif = v&&w?'Both checked':v?'Likert only':w?'Verbatim only':'Not checked';
+  const now=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const ts=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const date=ts.slice(0,10);
+  const ini=(agentSel.value||'XX').split(' ').map(x=>x[0]||'').join('');
+  const q3=no?'':document.getElementById('q3').value;
+  const q9=document.getElementById('q9').value;
+  return {
+    RespondentID:`${ini}-${responses.length+1}-${now.getTime().toString().slice(-5)}`,
+    Timestamp:ts, AgentName:agentSel.value, Q1_Interest:val('q1'),
+    Q2_Preparedness:no?'':val('q2'), Q3_Nominations:q3, Q3_Code:no?'':codeOf(q3),
+    Q4_Familiarity:no?'':val('q4'),
+    Q5_CommunityLeadership_YesNo:val('q5'), Q5_Role_Verbatim:document.getElementById('q5role').value.trim(),
+    Q6_Mobilisation_YesNo:val('q6'), Q6_Mobilisation_Details:document.getElementById('q6det').value.trim(),
+    Q7_Channel1:document.getElementById('q7a').value, Q7_Channel2:document.getElementById('q7b').value,
+    Q8_YouthVoiceScore:val('q8'), Q9_TopPriority:q9,
+    Q10_PrefersCandidate_YesNo:val('q10'), Q10_CandidateName_Verbatim:document.getElementById('q10name').value.trim(),
+    Q11_AgeGroup:val('q11'), Q12_Ward_Verbatim:document.getElementById('q12').value.trim(),
+    CallOutcome:document.getElementById('outcome').value, VerificationNotes:verif, SurveyDate:date
+  };
+}
+function validate(r){
+  const no=r.Q1_Interest==='No - no longer interested';
+  if(!r.AgentName) return 'Select your name first';
+  if(!r.Q1_Interest) return 'Answer Q1';
+  if(!no && (!r.Q2_Preparedness||!r.Q3_Nominations||!r.Q4_Familiarity)) return 'Complete Q2–Q4';
+  if(!r.Q5_CommunityLeadership_YesNo) return 'Answer Q5';
+  if(!r.Q6_Mobilisation_YesNo) return 'Answer Q6';
+  if(!r.Q7_Channel1) return 'Pick at least one channel (Q7)';
+  if(r.Q7_Channel1 && r.Q7_Channel2 && r.Q7_Channel1===r.Q7_Channel2) return 'Q7 channels must differ';
+  if(!r.Q8_YouthVoiceScore) return 'Answer Q8';
+  if(!r.Q9_TopPriority) return 'Answer Q9';
+  if(!r.Q10_PrefersCandidate_YesNo) return 'Answer Q10';
+  if(!r.CallOutcome) return 'Set the call outcome';
+  return '';
+}
+
+// ---------- toast ----------
+let toastT;
+function toast(msg,isErr){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.toggle('err',!!isErr); t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+// ---------- save ----------
+function refreshCounts(){
+  document.getElementById('countChip').textContent=responses.length;
+  document.getElementById('countModal').textContent=responses.length;
+}
+function resetForm(keepAgent){
+  document.querySelectorAll('input[type=radio]').forEach(r=>r.checked=false);
+  document.querySelectorAll('input[type=text],textarea').forEach(i=>i.value='');
+  document.querySelectorAll('select').forEach(s=>{if(s.id!=='agent')s.value='';});
+  document.getElementById('chkLikert').checked=false; document.getElementById('chkVerb').checked=false;
+  document.getElementById('q10nameWrap').style.display='none';
+  secA.classList.remove('show-ribbon'); document.getElementById('prospect').classList.remove('locked');
+  if(!keepAgent) agentSel.value='';
+  updateProgress(); window.scrollTo({top:0,behavior:'smooth'});
+}
+document.getElementById('saveBtn').addEventListener('click',()=>{
+  const r=collect(); const err=validate(r);
+  if(err){toast(err,true);return;}
+  responses.push(r);
+  Store.set('kitui_responses',JSON.stringify(responses));
+  refreshCounts(); maybeSync(r); resetForm(true);
+  toast('Saved — ready for the next call');
+});
+document.getElementById('resetBtn').addEventListener('click',()=>resetForm(true));
+
+// ---------- export ----------
+function download(name,blob){
+  const u=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=u; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(u),1500);
+}
+function fname(ext){const d=new Date().toISOString().slice(0,10);
+  return `Kitui_Survey_${(agentSel.value||'export').replace(/\s+/g,'_')}_${d}.${ext}`;}
+function toCSV(){
+  const esc=v=>{v=(v==null?'':String(v));return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  const lines=[HEADERS.join(',')];
+  responses.forEach(r=>lines.push(HEADERS.map(h=>esc(r[h])).join(',')));
+  return lines.join('\r\n');
+}
+document.getElementById('dlCsv').addEventListener('click',()=>{
+  if(!responses.length){toast('Nothing to export yet',true);return;}
+  download(fname('csv'),new Blob(['\ufeff'+toCSV()],{type:'text/csv;charset=utf-8'}));
+});
+document.getElementById('dlXlsx').addEventListener('click',()=>{
+  if(!responses.length){toast('Nothing to export yet',true);return;}
+  if(window.__noXLSX||typeof XLSX==='undefined'){
+    toast('Excel engine offline — use CSV (opens in Excel)',true);return;
+  }
+  const ws=XLSX.utils.json_to_sheet(responses,{header:HEADERS});
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Responses');
+  XLSX.writeFile(wb,fname('xlsx'));
+});
+document.getElementById('clearData').addEventListener('click',()=>{
+  if(!responses.length){toast('No data to clear');return;}
+  if(confirm('Clear ALL '+responses.length+' responses from this device? Export first — this cannot be undone.')){
+    responses=[]; Store.set('kitui_responses','[]'); refreshCounts(); toast('Device data cleared');
+  }
+});
+
+// ---------- live sync (optional) ----------
+function syncUrl(){return (Store.get('kitui_sync')||'').trim();}
+function reflectSync(){
+  const on=!!syncUrl();
+  document.querySelectorAll('.syncdot').forEach(d=>{d.classList.toggle('on',on);d.classList.toggle('off',!on);});
+  document.getElementById('syncState').innerHTML=
+    (on?'<span class="syncdot on"></span>Live sync on':'<span class="syncdot off"></span>Live sync off');
+  document.getElementById('syncStatusLine').innerHTML=
+    on?'<span class="syncdot on"></span>Live sync on — also saved to your sheet'
+      :'<span class="syncdot off"></span>Live sync off — using offline export';
+}
+async function maybeSync(r){
+  const url=syncUrl(); if(!url)return;
+  try{ await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify(r)}); }catch(e){ toast('Saved locally — sync will retry',false); }
+}
+
+// ---------- modals ----------
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(el){el.closest('.modal').classList.remove('open');}
+document.getElementById('openData').addEventListener('click',()=>{refreshCounts();openModal('dataModal');});
+document.getElementById('openSettings').addEventListener('click',()=>{
+  document.getElementById('syncUrl').value=syncUrl(); reflectSync(); openModal('setModal');});
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',e=>closeModal(e.target)));
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+document.getElementById('saveSettings').addEventListener('click',()=>{
+  Store.set('kitui_sync',document.getElementById('syncUrl').value.trim());
+  reflectSync(); toast('Settings saved'); document.getElementById('setModal').classList.remove('open');
+});
+
+// init
+if(window.__noXLSX){document.getElementById('dlXlsx').textContent='Download CSV for Excel';}
+refreshCounts(); reflectSync(); updateProgress();
+</script>
+</body>
+</html>
